@@ -1,0 +1,8 @@
+datasets==3.6.0
+transformers==4.46.0
+jsonlines
+scikit-learn
+k_means_constrained
+tree_sitter
+wandb
+accelerate==0.26.0
