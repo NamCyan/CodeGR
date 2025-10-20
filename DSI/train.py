@@ -8,6 +8,8 @@ from tqdm import tqdm
 import logging, argparse
 import json, os
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 class QueryEvalCallback(TrainerCallback):
     def __init__(self, test_dataset, logger, restrict_decode_vocab, args: TrainingArguments, tokenizer: AutoTokenizer): # tokenizer: T5Tokenizer AutoTokenizer
         self.tokenizer = tokenizer
@@ -90,13 +92,14 @@ def main():
     parser.add_argument('--test_data', type=str)
     parser.add_argument('--max_length', type=int, default=256)
     parser.add_argument('--lr', type=float, default=5e-5)
-    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--eval_steps', type=int, default=500)
     parser.add_argument('--num_train_epochs', type=int, default=3)
     parser.add_argument('--max_steps', type=int)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
     parser.add_argument('--id_max_length', type=int, default=20)
-    parser.add_argument('--test_samples', type=int, default=-1)
+    parser.add_argument('--train_samples', type=int, default=1000)
+    parser.add_argument('--test_samples', type=int, default=100)
     parser.add_argument('--eval_samples', type=int, default=5000)
 
     args = parser.parse_args()
@@ -114,7 +117,8 @@ def main():
     train_dataset = IndexingTrainDataset(path_to_data=args.train_data,
                                          max_length=L,
                                          tokenizer=tokenizer,
-                                         cache_dir=args.cache_dir)
+                                         cache_dir=args.cache_dir,
+                                         max_samples=args.train_samples)
     
     # This eval set is really not the 'eval' set but used to report if the model can memorise (index) all training data points.
     eval_dataset = IndexingTrainDataset(path_to_data=args.train_data,

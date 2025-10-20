@@ -21,7 +21,7 @@ class IndexingTrainDataset(Dataset):
         )['train']
         
         if max_samples != -1:
-            self.train_data = self.train_data.take(max_samples)
+            self.train_data = self.train_data.select(range(max_samples))
 
         self.max_length = max_length
         if max_length == -1:
