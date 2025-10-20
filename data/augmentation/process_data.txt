@@ -1,0 +1,5 @@
+raw_data 
+-----GenSum--> raw augmented query 
+---add_context.py---> augmented query 
+----re_rank.sh---> raw filter augmented data 
+---ready_to_feed_dsi.py (merge original query)--> final version
