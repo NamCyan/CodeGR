@@ -52,16 +52,24 @@ class RankerTrainer(object):
 
         if args.ranker_file and os.path.exists(args.ranker_file):
             state = load_states_from_checkpoint(args.ranker_file)
-            set_encoder_params_from_state(state.encoder_params, self.args, 'ranker')
+            set_encoder_params_from_state(state.encoder_params, 
+                                          self.args, 
+                                          'ranker')
         else:
             state = None
 
         self.ranker, self.optimizer, self.tokenizer = get_ranker_components(args)
 
-        self.train_iterator, args.train_steps  = self.get_iterator(args.train_file, args.train_batch_size, args.train_steps, 0)
+        self.train_iterator, args.train_steps  = self.get_iterator(args.train_file, 
+                                                                   args.train_batch_size, 
+                                                                   args.train_steps, 
+                                                                   0)
 
         if args.dev_file is not None:
-            self.dev_iterator = self.get_iterator(args.dev_file, args.dev_batch_size, -1, 0)
+            self.dev_iterator = self.get_iterator(args.dev_file, 
+                                                  args.dev_batch_size, 
+                                                  -1, 
+                                                  0)
 
         self.scheduler = get_linear_schedule_with_warmup(
             self.optimizer, 
@@ -69,11 +77,19 @@ class RankerTrainer(object):
             num_training_steps = args.train_steps * args.iter_num // args.gradient_accumulation_steps 
         )
 
-        self.ranker, self.optimizer = setup_for_distributed_mode(self.ranker, self.optimizer, args.local_rank, args.fp16, args.fp16_opt_level)
+        # self.ranker, self.optimizer = setup_for_distributed_mode(self.ranker, 
+        #                                                          self.optimizer, 
+        #                                                          args.local_rank, 
+        #                                                          args.fp16, 
+        #                                                          args.fp16_opt_level)
 
         self._load_ranker(state, args.restart)
     
-    def get_iterator(self, file, batch_size, total_steps, start_step=0):
+    def get_iterator(self, 
+                     file, 
+                     batch_size, 
+                     total_steps, 
+                     start_step=0):
 
         args = self.args
 
@@ -102,7 +118,10 @@ class RankerTrainer(object):
 
         return iterator, total_steps
     
-    def create_input(self, samples, nums, shuffle=True):
+    def create_input(self, 
+                     samples, 
+                     nums, 
+                     shuffle=True):
 
         args = self.args
 
@@ -125,14 +144,17 @@ class RankerTrainer(object):
 
             for ctx in ctxs[:nums]:
                 queries.append(sample['question'])
-                answers.append(sample['answers'][0] if 'answers' in sample else None)
+                # answers.append(sample['answers'][0] if 'answers' in sample else None)
                 contexts.append(ctx)
             
         inputs = sentence_to_inputs(queries, contexts, answers, self.tokenizer, args)
 
         return inputs['input_ids'], inputs['attention_mask']
 
-    def _forward(self, samples, num, shuffle=True):
+    def _forward(self, 
+                 samples, 
+                 num, 
+                 shuffle=True):
 
         input_ids, attention_mask = self.create_input(samples, num, shuffle)
         outs = self.ranker(input_ids, attention_mask)
@@ -260,7 +282,9 @@ class RankerTrainer(object):
             torch.save(best_state._asdict(), path)
             logger.info("Save best state to %s", path)
 
-    def _load_ranker(self, state, restart):
+    def _load_ranker(self, 
+                     state, 
+                     restart):
 
         if state:
             model_to_load = get_model_obj(self.ranker)

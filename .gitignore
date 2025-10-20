@@ -1,7 +1,13 @@
 data
 **/cache
 **/__pycache__
-**/models
+# **/models
 **/summarization
-Dense/results
-
+results/
+wandb/
+*.json
+*.bin
+*.log
+*.safetensors
+*.pth
+*.pt

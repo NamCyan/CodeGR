@@ -47,7 +47,11 @@ class Ranker(object):
 
         contexts = [ctx for _ in queries]
 
-        inputs = sentence_to_inputs(queries, contexts, None, self.ranker_tokenizer, self.args)
+        inputs = sentence_to_inputs(queries, 
+                                    contexts, 
+                                    None, 
+                                    self.ranker_tokenizer, 
+                                    self.args)
 
         outs = self.ranker(inputs['input_ids'], inputs['attention_mask'])['scores'].cpu().numpy()
 
@@ -78,9 +82,8 @@ class Ranker(object):
 
     @torch.no_grad()
     def rank(self):
-
         args = self.args
-
+    
         inputs, outs = [], []
         with jsonlines.open(args.in_file) as reader:
             for obj in reader:
@@ -90,24 +93,49 @@ class Ranker(object):
             size_per_rank = int(len(inputs) / args.world_size)
             start_idx = args.local_rank * size_per_rank
             end_idx = start_idx + size_per_rank if args.local_rank != args.world_size - 1 else len(inputs)
-
             inputs = inputs[start_idx:end_idx] 
-
-        for obj in tqdm(inputs) if args.local_rank in [-1, 0] else inputs:
+        
+        batch_size = 10
+        for i in range(0, len(inputs), batch_size):
+            batch = inputs[i:i+batch_size]
+            
+            queries = []
+            for item in batch:
+                if 'text' in item:
+                    queries.append(item['text'])
+            
+            unique_queries = list(set(queries))
+            
+            if len(batch) > 0:
+                obj = batch[0]  # Using the first object for context
+                ctx = dict(text=obj['context']) if 'context' in obj else dict()
                 
-            ctxs =  dict(title=obj['title'], text=obj['passage'])
-            queries = list(set(obj['queries']))
+                if unique_queries:  # Only process if there are queries
+                    scores = self._get_ranker_scores(unique_queries, ctx, None)
+                    argsort = np.argsort(scores)[::-1]
+                    top_k = 5
+                    top_indices = argsort[:top_k] if len(argsort) > top_k else argsort
+                    top_queries = [unique_queries[i] for i in top_indices]
+                    top_scores = scores[top_indices].tolist()
+                    query_to_score = dict(zip(top_queries, top_scores))
 
-            scores = self._get_ranker_scores(queries, ctxs, None)
 
-            argsort = np.argsort(scores)[::-1]
+                    seen_items = set()
+                    for item in batch:
+                        if 'text' in item and item['text'] in query_to_score and item['text'] not in seen_items:
+                            item['score'] = query_to_score[item['text']]
+                            outs.append(item)
+                            seen_items.add(item['text'])
+                        else:
+                            continue
 
-            obj['queries'] = np.array(queries)[argsort].tolist()
-            obj['scores'] = scores[argsort].tolist()
-
-            outs.append(obj)
-
-        self._save_file(outs, args.out_file)  
+                    print(f"Processed {i + len(batch)} / {len(inputs)}")
+                else:
+                    outs.extend(batch)
+            else:
+                pass
+    
+        self._save_file(outs, args.out_file)
 
 def main():
     parser = argparse.ArgumentParser()
