@@ -12,6 +12,7 @@ from transformers import (
     RobertaTokenizerFast,
     HfArgumentParser,
     set_seed,
+    AutoModelForCausalLM
 )
 from datasets import load_dataset
 from trainer import DSITrainer, DocTqueryTrainer
@@ -25,18 +26,20 @@ from tqdm import tqdm
 import os
 set_seed(313)
 
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 @dataclass
 class RunArguments:
     model_name: str = field(default=None)
     model_path: Optional[str] = field(default=None)
     lang: str = field(default="Ruby")
-    max_length: Optional[int] = field(default=32)
+    max_length: Optional[int] = field(default=128) 
     id_max_length: Optional[int] = field(default=20)
     remove_prompt: Optional[bool] = field(default=False)
     train_file: str = field(default=None)
     valid_file: str = field(default=None)
-    eval_samples: Optional[int] = field(default=5000)
+    eval_samples: Optional[int] = field(default=2000)
     test_samples: Optional[int] = field(default=-1)
     task: str = field(default=None,  metadata={"help": "DSI, docTquery, generation"})
     top_k: Optional[int] = field(default=10)
@@ -77,7 +80,11 @@ def main():
 
     parser = HfArgumentParser((TrainingArguments, RunArguments))
     training_args, run_args = parser.parse_args_into_dataclasses()
-
+    
+    for key, value in vars(training_args).items():
+        print(f"{key}: {value}")
+    for key, value in vars(run_args).items():
+        print(f"{key}: {value}")
     # # We use wandb logger: https://wandb.ai/site.
     # if training_args.local_rank == 0:  # only on main process
     #     # Initialize wandb run

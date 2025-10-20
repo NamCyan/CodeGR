@@ -1,4 +1,3 @@
-data
 **/cache
 **/__pycache__
 # **/models
@@ -6,8 +5,10 @@ data
 results/
 wandb/
 *.json
+*.jsonl
 *.bin
 *.log
 *.safetensors
 *.pth
 *.pt
+*.arrow
